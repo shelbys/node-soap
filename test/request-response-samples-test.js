@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 
 var assert = require('assert');
 var fs   = require('fs');
@@ -10,7 +10,6 @@ var soap = require('../');
 var WSSecurity = require('../lib/security/WSSecurity');
 var server;
 var port;
-var endpoint;
 var tests = glob.sync('./request-response-samples/*', {cwd:__dirname})
   .map(function(node){return path.resolve(__dirname, node);})
   .filter(function(node){return fs.statSync(node).isDirectory();});
@@ -72,6 +71,7 @@ tests.forEach(function(test){
   var requestJSON = path.resolve(test, 'request.json');
   var requestXML = path.resolve(test, 'request.xml');
   var responseJSON = path.resolve(test, 'response.json');
+  var responseSoapHeaderJSON = path.resolve(test, 'responseSoapHeader.json');
   var responseJSONError = path.resolve(test, 'error_response.json');
   var responseXML = path.resolve(test, 'response.xml');
   var options = path.resolve(test, 'options.json');
@@ -91,12 +91,16 @@ tests.forEach(function(test){
   else if(fs.existsSync(responseJSONError))responseJSON = require(responseJSONError);
   else responseJSON = null;
 
+  //responseSoapHeaderJSON is optional
+  if (fs.existsSync(responseSoapHeaderJSON))responseSoapHeaderJSON = require(responseSoapHeaderJSON);
+  else responseSoapHeaderJSON = null;
+
   //requestXML is optional
-  if(fs.existsSync(requestXML))requestXML = ""+fs.readFileSync(requestXML);
+  if(fs.existsSync(requestXML))requestXML = ''+fs.readFileSync(requestXML);
   else requestXML = null;
 
   //responseXML is optional
-  if(fs.existsSync(responseXML))responseXML = ""+fs.readFileSync(responseXML);
+  if(fs.existsSync(responseXML))responseXML = ''+fs.readFileSync(responseXML);
   else responseXML = null;
 
   //requestJSON is required as node-soap will expect a request object anyway
@@ -110,10 +114,10 @@ tests.forEach(function(test){
   if(fs.existsSync(wsdlOptionsFile)) wsdlOptions = require(wsdlOptionsFile);
   else wsdlOptions = {};
 
-  generateTest(name, methodName, wsdl, headerJSON, securityJSON, requestXML, requestJSON, responseXML, responseJSON, wsdlOptions, options);
+  generateTest(name, methodName, wsdl, headerJSON, securityJSON, requestXML, requestJSON, responseXML, responseJSON, responseSoapHeaderJSON, wsdlOptions, options);
 });
 
-function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requestXML, requestJSON, responseXML, responseJSON, wsdlOptions, options){
+function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requestXML, requestJSON, responseXML, responseJSON, responseSoapHeaderJSON, wsdlOptions, options){
   suite[name] = function(done){
     if(requestXML)requestContext.expectedRequest = requestXML;
     if(responseXML)requestContext.responseToSend = responseXML;
@@ -127,13 +131,16 @@ function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requ
       if (securityJSON && securityJSON.type === 'ws') {
         client.setSecurity(new WSSecurity(securityJSON.username, securityJSON.password));
       }
-      client[methodName](requestJSON, function(err, json, body){
+      client[methodName](requestJSON, function(err, json, body, soapHeader){
         if(requestJSON){
           if (err) {
             assert.deepEqual(err.root, responseJSON);
           } else {
             // assert.deepEqual(json, responseJSON);
             assert.equal(JSON.stringify(json), JSON.stringify(responseJSON));
+            if(responseSoapHeaderJSON){
+              assert.equal(JSON.stringify(soapHeader), JSON.stringify(responseSoapHeaderJSON));
+            }
           }
         }
         done();
