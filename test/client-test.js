@@ -465,14 +465,15 @@ describe('SOAP Client', function() {
       }, baseUrl);
     });
 
-    it('Should emit the "request" event with entire XML message', function (done) {
+    it('Should emit the "request" event with entire XML message and name', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('request', function (xml) {
+        client.on('request', function (xml, name) {
           didEmitEvent = true;
           // Should contain entire soap message
           assert.equal(typeof xml, 'string');
           assert.notEqual(xml.indexOf('soap:Envelope'), -1);
+          assert.equal(name, 'MyOperation');
         });
 
         client.MyOperation({}, function() {
@@ -482,14 +483,15 @@ describe('SOAP Client', function() {
       }, baseUrl);
     });
 
-    it('Should emit the "response" event with Soap Body string', function (done) {
+    it('Should emit the "response" event with Soap Body string and name', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('response', function (xml) {
+        client.on('response', function (xml, name) {
           didEmitEvent = true;
           // Should contain entire soap message
           assert.equal(typeof xml, 'string');
           assert.equal(xml.indexOf('soap:Envelope'), -1);
+          assert.equal(name, 'MyOperation');
         });
 
         client.MyOperation({}, function() {
@@ -505,6 +507,7 @@ describe('SOAP Client', function() {
         client.on('soapError', function(err) {
           didEmitEvent = true;
           assert.ok(err.root.Envelope.Body.Fault);
+          assert.equal(err.name, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           assert.ok(didEmitEvent);
