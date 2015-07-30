@@ -355,9 +355,9 @@ describe('SOAP Client', function() {
     it('should emit a \'soapError\' event', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('soapError', function(err) {
+        client.on('soapError', function(err, name) {
           didEmitEvent = true;
-          assert.equal(err.name, 'MyOperation');
+          assert.equal(name, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           assert.ok(didEmitEvent);
@@ -400,9 +400,9 @@ describe('SOAP Client', function() {
 
     it('should emit a \'soapError\' event', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
-        client.on('soapError', function(err) {
+        client.on('soapError', function(err, name) {
           assert.ok(err);
-          assert.equal(err.name, 'MyOperation');
+          assert.equal(name, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           done();
@@ -519,10 +519,10 @@ describe('SOAP Client', function() {
     it('should emit a \'soapError\' event', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('soapError', function(err) {
+        client.on('soapError', function(err, name) {
           didEmitEvent = true;
           assert.ok(err.root.Envelope.Body.Fault);
-          assert.equal(err.name, 'MyOperation');
+          assert.equal(name, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           assert.ok(didEmitEvent);
