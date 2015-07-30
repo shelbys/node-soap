@@ -351,6 +351,20 @@ describe('SOAP Client', function() {
         });
       }, baseUrl);
     });
+
+    it('should emit a \'soapError\' event', function (done) {
+      soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
+        var didEmitEvent = false;
+        client.on('soapError', function(err) {
+          didEmitEvent = true;
+          assert.equal(err.name, 'MyOperation');
+        });
+        client.MyOperation({}, function(err, result) {
+          assert.ok(didEmitEvent);
+          done();
+        });
+      }, baseUrl);
+    });
   });
 
   describe('Handle non-success http status codes', function() {
@@ -388,6 +402,7 @@ describe('SOAP Client', function() {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         client.on('soapError', function(err) {
           assert.ok(err);
+          assert.equal(err.name, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           done();
