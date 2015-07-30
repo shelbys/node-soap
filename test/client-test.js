@@ -352,12 +352,12 @@ describe('SOAP Client', function() {
       }, baseUrl);
     });
 
-    it('should emit a \'soapError\' event', function (done) {
+    it('should emit a \'soapError\' event with methodName', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('soapError', function(err, name) {
+        client.on('soapError', function(err) {
           didEmitEvent = true;
-          assert.equal(name, 'MyOperation');
+          assert.equal(err.methodName, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           assert.ok(didEmitEvent);
@@ -398,11 +398,12 @@ describe('SOAP Client', function() {
       }, baseUrl);
     });
 
-    it('should emit a \'soapError\' event', function (done) {
+    it('should emit a \'soapError\' event with methodName', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
-        client.on('soapError', function(err, name) {
+        client.on('soapError', function(err) {
           assert.ok(err);
-          assert.equal(name, 'MyOperation');
+          console.log({err:err});
+          assert.equal(err.methodName, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           done();
@@ -516,13 +517,13 @@ describe('SOAP Client', function() {
       }, baseUrl);
     });
 
-    it('should emit a \'soapError\' event', function (done) {
+    it('should emit a \'soapError\' event with methodName', function (done) {
       soap.createClient(__dirname + '/wsdl/default_namespace.wsdl', function (err, client) {
         var didEmitEvent = false;
-        client.on('soapError', function(err, name) {
+        client.on('soapError', function(err) {
           didEmitEvent = true;
           assert.ok(err.root.Envelope.Body.Fault);
-          assert.equal(name, 'MyOperation');
+          assert.equal(err.methodName, 'MyOperation');
         });
         client.MyOperation({}, function(err, result) {
           assert.ok(didEmitEvent);
