@@ -23,7 +23,8 @@ var requestContext = {
   requestHandler:function(req, res){
     var chunks = [];
     req.on('data', function(chunk){
-      chunks.push(chunk);
+      // ignore eol on sample files.
+      chunks.push(chunk.toString().replace(/\r?\n$/m, ''));
     });
     req.on('end', function(){
       if(!requestContext.expectedRequest)return res.end(requestContext.responseToSend);
@@ -104,11 +105,12 @@ function generateTest(name, methodName, wsdlPath, headerJSON, securityJSON, requ
         }
       }
       if (securityJSON && securityJSON.type === 'ws') {
-        client.setSecurity(new WSSecurity(securityJSON.username, securityJSON.password));
+        client.setSecurity(new WSSecurity(securityJSON.username, securityJSON.password, securityJSON.options));
       }
       client[methodName](requestJSON, function(err, json, body, soapHeader){
         if(requestJSON){
           if (err) {
+            assert.notEqual('undefined: undefined', err.message);
             assert.deepEqual(err.root, responseJSON);
           } else {
             // assert.deepEqual(json, responseJSON);

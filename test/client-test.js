@@ -210,6 +210,23 @@ describe('SOAP Client', function() {
         }, null, {"test-header": 'test'});
       }, baseUrl);
     });
+
+    it('should add proper headers for soap12', function(done) {
+      soap.createClient(__dirname+'/wsdl/default_namespace_soap12.wsdl', {forceSoap12Headers: true}, function(err, client) {
+        assert.ok(client);
+        assert.ok(!err);
+
+        client.MyOperation({}, function(err, result) {
+          assert.ok(result);
+          assert.ok(client.lastRequestHeaders);
+          assert.ok(client.lastRequest);
+          assert.equal(client.lastRequestHeaders['Content-Type'], 'application/soap+xml; charset=utf-8');
+          assert.notEqual(client.lastRequest.indexOf('xmlns:soap=\"http://www.w3.org/2003/05/soap-envelope\"'), -1);
+          assert( !client.lastRequestHeaders.SOAPAction );
+          done();
+        }, null, {'test-header': 'test'});
+      }, baseUrl);
+    });
   });
 
   it('should add soap headers', function (done) {
@@ -247,6 +264,22 @@ describe('SOAP Client', function() {
 
       client.clearSoapHeaders();
       assert.ok(!client.getSoapHeaders());
+      done();
+    });
+  });
+  
+  it('should add http headers', function(done) {
+    soap.createClient(__dirname+'/wsdl/default_namespace.wsdl', function(err, client) {
+      assert.ok(client);
+      assert.ok(!client.getHttpHeaders());
+
+      client.addHttpHeader('foo', 'bar');
+
+      assert.ok(client.getHttpHeaders());
+      assert.equal(client.getHttpHeaders().foo, 'bar');
+
+      client.clearHttpHeaders();
+      assert.equal(Object.keys(client.getHttpHeaders()).length, 0);
       done();
     });
   });
@@ -288,12 +321,14 @@ describe('SOAP Client', function() {
         client.MyOperation(data, function(err, result) {
           assert.ok(client.lastRequest);
           assert.ok(client.lastMessage);
+          assert.ok(client.lastEndpoint);
           assert.equal(client.lastMessage, message);
 
           delete data.attributes.xsi_type.namespace;
           client.MyOperation(data, function(err, result) {
             assert.ok(client.lastRequest);
             assert.ok(client.lastMessage);
+            assert.ok(client.lastEndpoint);
             assert.equal(client.lastMessage, message);
 
             done();
@@ -514,4 +549,34 @@ describe('SOAP Client', function() {
     });
 
   });
+
+  it('should return error in the call when Fault was returned', function(done) {
+    var server = null;
+    var hostname = '127.0.0.1';
+    var port = 15099;
+    var baseUrl = 'http://' + hostname + ':' + port;
+
+    server = http.createServer(function (req, res) {
+      res.statusCode = 200;
+      res.write("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><SOAP-ENV:Envelope SOAP-ENV:encodingStyle=\"http://schemas.xmlsoap.org/soap/encoding/\"\n  xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"\n  xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\"\n  xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n  xmlns:SOAP-ENC=\"http://schemas.xmlsoap.org/soap/encoding/\">\n<SOAP-ENV:Body><SOAP-ENV:Fault><faultcode xsi:type=\"xsd:string\">Test</faultcode><faultactor xsi:type=\"xsd:string\"></faultactor><faultstring xsi:type=\"xsd:string\">test error</faultstring><detail xsi:type=\"xsd:string\">test detail</detail></SOAP-ENV:Fault></SOAP-ENV:Body></SOAP-ENV:Envelope>");
+      res.end();
+    }).listen(port, hostname, function() {
+      soap.createClient(__dirname+'/wsdl/json_response.wsdl', function(err, client) {
+        assert.ok(client);
+        assert.ok(!err);
+
+        client.MyOperation({}, function(err, result, body) {
+          server.close();
+          server = null;
+          assert.ok(err);
+          assert.strictEqual(err.message, 'Test: test error: test detail');
+          assert.ok(result);
+          assert.ok(body);
+          done();
+        });
+      }, baseUrl);
+    });
+
+  });
+
 });
